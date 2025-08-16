@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NFR Official Results</title>
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+  <header>
+    <h1>NFR Official Results</h1>
+  </header>
+  <main>
+    <div class="center-box">
+      <div style="margin-bottom:1em;">
+        <label for="year-select"><strong>Year:</strong></label>
+        <select id="year-select">
+          <option value="2025">2025</option>
+          <option value="2024" selected>2024</option>
+          <option value="2023">2023</option>
+          <option value="2022">2022</option>
+        </select>
+      </div>
+      <div id="round-tabs"></div>
+      <div id="results-content"></div>
+    </div>
+  </main>
+  <footer>
+    <p>&copy; 2023 NFR Fantasy Rodeo. All rights reserved.</p>
+  </footer>
+  <!-- Use ES module for maintainability and shared utils -->
+  <script type="module" src="scripts/nfrresults.js"></script>
+</body>
+</html>

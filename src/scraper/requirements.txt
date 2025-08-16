@@ -1,0 +1,6 @@
+# Core dependencies for nfrscraper.py
+selenium
+beautifulsoup4
+lxml
+chromedriver-autoinstaller
+certifi

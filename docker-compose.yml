@@ -1,0 +1,40 @@
+services:
+  scraper:
+    build:
+      context: ./src/scraper
+      dockerfile: Dockerfile
+    volumes:
+      - ./src/scraper/results:/app/results
+    environment:
+      - CRON=1
+    networks:
+      - appnet
+  frontend:
+    build:
+      context: ./src/frontend
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - appnet
+    volumes:
+      - ./src/frontend/html:/usr/share/nginx/html
+  backend:
+    build:
+      context: ./src/backend
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    networks:
+      - appnet
+    environment:
+      - LOG_LEVEL=debug
+    volumes:
+      - ./src/scraper/results:/usr/src/app/scraper/results:ro
+      - ./src/backend:/usr/src/app
+      - /usr/src/app/node_modules
+networks:
+  appnet:
+    driver: bridge

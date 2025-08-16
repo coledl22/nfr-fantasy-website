@@ -1,0 +1,109 @@
+/* Responsive table wrapper for results tables */
+.results-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+@media (max-width: 700px) {
+    .results-table th, .results-table td {
+        font-size: 0.9em;
+        padding: 4px 6px;
+    }
+}
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background: #f4f4f4;
+    min-height: 100vh;
+}
+
+header {
+    background: #35424a;
+    color: #fff;
+    padding: 2em 0 1em 0;
+    text-align: center;
+}
+
+h1 {
+    margin: 0;
+    font-size: 2.2em;
+    letter-spacing: 1px;
+    text-align: center;
+}
+
+main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.center-box {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    max-width: 900px;
+    margin: 3em auto 2em auto;
+    padding: 2em 2em 1.5em 2em;
+    text-align: center;
+    width: 100%;
+}
+
+.intro {
+    font-size: 1.1em;
+    margin-bottom: 2em;
+    text-align: center;
+}
+
+.main-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+    align-items: center;
+    text-align: center;
+}
+
+.main-nav a {
+    color: #fff;
+    background: #35424a;
+    border-radius: 24px;
+    padding: 0.7em 1.7em;
+    text-decoration: none;
+    font-size: 1.1em;
+    font-weight: bold;
+    margin: 0.2em 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+}
+
+.main-nav a:hover, .main-nav a:focus {
+    background: #fff;
+    color: #35424a;
+    box-shadow: 0 4px 16px rgba(53,66,74,0.12);
+}
+
+footer {
+    background: #35424a;
+    color: #fff;
+    text-align: center;
+    padding: 1em 0 0.7em 0;
+    position: relative;
+    bottom: 0;
+    width: 100%;
+    margin-top: 2em;
+}
+
+@media (max-width: 1000px) {
+    .center-box {
+        max-width: 98vw;
+        padding: 1em 0.5em;
+    }
+    h1 {
+        font-size: 1.3em;
+    }
+    .main-nav a {
+        font-size: 1em;
+        padding: 0.7em 1em;
+    }
+}
