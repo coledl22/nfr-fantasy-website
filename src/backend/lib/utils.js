@@ -12,13 +12,19 @@ const path = require('path');
 
 function readJsonFile(file, fallback = null) {
   try {
-    return JSON.parse(fs.readFileSync(file, 'utf-8'));
+    const content = fs.readFileSync(file, 'utf-8');
+    if (!content.trim()) return fallback; // treat empty file as fallback
+    return JSON.parse(content);
   } catch (e) {
     return fallback;
   }
 }
 
 function writeJsonFile(file, data) {
+  const dir = path.dirname(file);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
   fs.writeFileSync(file, JSON.stringify(data, null, 2));
 }
 

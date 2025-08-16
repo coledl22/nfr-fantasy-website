@@ -40,6 +40,33 @@ function loadTeamForm() {
       formHtml += '</form>';
       standingsDiv.innerHTML = formHtml + '<div id="formMessage"></div>';
 
+      // Handle form submission via AJAX
+      const form = document.getElementById('fantasyForm');
+      form.onsubmit = async function(e) {
+        e.preventDefault();
+        const name = document.getElementById('userName').value;
+        const selections = [];
+        for (let i = 0; i < events.length; i++) {
+          selections.push(document.getElementById(`event${i}`).value);
+        }
+        const year = getSelectedYear();
+        try {
+          const resp = await fetch('/api/validate?year=' + encodeURIComponent(year), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, selections })
+          });
+          const result = await resp.json();
+          if (resp.ok && result.success) {
+            setText('#formMessage', `Team submitted! Total cost: $${result.totalCost.toLocaleString()}`);
+          } else {
+            setText('#formMessage', result.error || 'Submission failed.');
+          }
+        } catch (err) {
+          setText('#formMessage', 'Submission failed.');
+        }
+      };
+
       // Add Select Random button
       const randomBtn = document.createElement('button');
       randomBtn.type = 'button';

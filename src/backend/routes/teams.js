@@ -21,11 +21,14 @@ router.post('/validate', (req, res) => {
     const event = events[i];
     const id = selections[i];
     const people = eventContestants[event];
-    const person = people.find(p => p.id === id);
+    const person = people[id-1];
     if (!person) {
+      log(`[VALIDATE] Invalid selection for event: ${event}. Selection ID: ${id}. People:`, people);
       return res.status(400).json({ error: `Invalid selection for event: ${event}` });
     }
-    totalCost += person.cost;
+  // Cost: 1st place (index 0) = $150,000, 2nd = $140,000, ..., 15th (index 14) = $10,000
+  const cost = 150000 - ((id-1) * 10000);
+  totalCost += cost;
   }
   if (totalCost > budget) {
     return res.status(400).json({ error: `Selection exceeds budget of $${budget}.` });
@@ -34,12 +37,12 @@ router.post('/validate', (req, res) => {
   const newTeam = { name, selections, totalCost, submittedAt: new Date().toISOString() };
   const existingIdx = teams.findIndex(t => t.name && t.name.trim().toLowerCase() === name.trim().toLowerCase());
   if (existingIdx !== -1) {
-    teams[existingIdx] = newTeam;
+    return res.status(400).json({ error: 'A team with this name already exists for this year.' });
   } else {
     teams.push(newTeam);
+    saveTeams(year, teams);
+    res.json({ success: true, totalCost });
   }
-  saveTeams(year, teams);
-  res.json({ success: true, totalCost });
 });
 
 // GET /api/team-exists/:name
