@@ -1,5 +1,30 @@
 // utils.js - shared helpers for frontend scripts
 
+
+/**
+ * Populate a <select> element with year options from /api/available-years
+ * @param {HTMLSelectElement} yearSelect
+ * @returns {Promise<void>}
+ */
+export async function populateYearDropdown(yearSelect) {
+  if (!yearSelect) return;
+  try {
+    const years = await fetchJson('/api/available-years');
+    yearSelect.innerHTML = '';
+    years.sort((a, b) => b - a); // Descending order
+    years.forEach(y => {
+      const opt = document.createElement('option');
+      opt.value = y;
+      opt.textContent = y;
+      yearSelect.appendChild(opt);
+    });
+    // Select the first year by default
+    if (years.length > 0) yearSelect.value = years[0];
+  } catch {
+    yearSelect.innerHTML = '<option value="">No years available</option>';
+  }
+}
+
 /**
  * Fetch JSON from a URL, with error handling.
  * @param {string} url

@@ -1,8 +1,10 @@
-import { fetchJson, setText, centerBlock } from './utils.js';
+import { fetchJson, setText, centerBlock, populateYearDropdown } from './utils.js';
+
 
 function getSelectedYear() {
   return document.getElementById('year-select')?.value || '2024';
 }
+
 
 // Inject consistent table styles for all results tables (matches results.js)
 function injectResultsTableStyles() {
@@ -31,7 +33,8 @@ function injectResultsTableStyles() {
   document.head.appendChild(style);
 }
 
-function nfrResultsMain() {
+
+async function nfrResultsMain() {
   const EVENTS = [
     { code: 'BB', name: 'Bareback Riding' },
     { code: 'SW', name: 'Steer Wrestling' },
@@ -48,8 +51,14 @@ function nfrResultsMain() {
   let eventResults = null;
 
   injectResultsTableStyles();
+  await populateYearDropdown(document.getElementById('year-select'));
+
   function loadEventResults() {
     const year = getSelectedYear();
+    if (!year) {
+      setText(CONTENT_SEL, 'No year selected.');
+      return;
+    }
     fetchJson(`/api/event-results?year=${year}`)
       .then(data => {
         eventResults = data;

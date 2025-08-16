@@ -1,4 +1,4 @@
-import { fetchJson, setText } from './utils.js';
+import { fetchJson, setText, populateYearDropdown } from './utils.js';
 
 function getSelectedYear() {
   return document.getElementById('year-select')?.value || '2024';
@@ -113,6 +113,12 @@ function loadTeamForm() {
     });
 }
 
-document.getElementById('year-select')?.addEventListener('change', loadTeamForm);
-// Initial load
-loadTeamForm();
+
+(async () => {
+  const yearSelect = document.getElementById('year-select');
+  await populateYearDropdown(yearSelect);
+  if (yearSelect) {
+    yearSelect.addEventListener('change', loadTeamForm);
+  }
+  loadTeamForm();
+})();

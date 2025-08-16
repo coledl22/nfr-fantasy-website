@@ -1,6 +1,6 @@
 // ...existing code...
 // results.js - refactored for maintainability, using utils.js
-import { fetchJson, setText, centerBlock } from './utils.js';
+import { fetchJson, setText, centerBlock, populateYearDropdown } from './utils.js';
 
 /**
  * Main entry point for results page.
@@ -40,10 +40,12 @@ function injectResultsTableStyles() {
   const TABS_SEL = '#results-tabs';
   const YEAR_SEL = '#year-select';
 
+
   function getSelectedYear() {
     const sel = document.querySelector(YEAR_SEL);
-    return sel ? sel.value : '2024';
+    return sel && sel.value ? sel.value : '2024';
   }
+
 
   function loadResults() {
     const year = getSelectedYear();
@@ -52,14 +54,16 @@ function injectResultsTableStyles() {
       .catch(() => setText(RESULTS_SEL, 'Could not load results.'));
   }
 
-  // Listen for year changes
-  const yearSelect = document.querySelector(YEAR_SEL);
-  if (yearSelect) {
-    yearSelect.addEventListener('change', loadResults);
-  }
 
-  // Initial load
-  loadResults();
+  // Listen for year changes and populate dropdown
+  (async () => {
+    const yearSelect = document.querySelector(YEAR_SEL);
+    await populateYearDropdown(yearSelect);
+    if (yearSelect) {
+      yearSelect.addEventListener('change', loadResults);
+    }
+    loadResults();
+  })();
 
   /**
    * Render all results and tabs.
