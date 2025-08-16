@@ -19,6 +19,5 @@ RUN chmod +x ./entrypoint.sh
 # Set up cron to run at midnight (will be overwritten by entrypoint.sh logic)
 RUN echo "0 0 * * * root /app/entrypoint.sh >> /var/log/cron.log 2>&1" > /etc/cron.d/nfrscraper-cron
 RUN chmod 0644 /etc/cron.d/nfrscraper-cron && crontab /etc/cron.d/nfrscraper-cron
-USER seluser
 # Default: run entrypoint (runs once, or cron if CRON=1)
 ENTRYPOINT ["/app/entrypoint.sh"]
