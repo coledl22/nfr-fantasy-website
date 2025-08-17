@@ -27,8 +27,8 @@ function injectResultsTableStyles() {
       white-space: nowrap;
     }
   /* Set explicit widths for each column type */
-  .results-table th:nth-child(1), .results-table td:nth-child(1) { width: 150px; }
-  .results-table th:nth-child(2), .results-table td:nth-child(2) { width: 150px; }
+  .results-table th:nth-child(1), .results-table td:nth-child(1) { width: 35px; }
+  .results-table th:nth-child(2), .results-table td:nth-child(2) { width: 100px; }
   .results-table th:nth-child(n+3), .results-table td:nth-child(n+3) { width: 35px; }
   `;
   document.head.appendChild(style);

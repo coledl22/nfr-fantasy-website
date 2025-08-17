@@ -280,7 +280,6 @@ function injectResultsTableStyles() {
         }
         html = `<h2 style="text-align:center;">Round Winners</h2>`;
         html += '<div style="margin:0 auto;display:table">' + roundWinnersHtml.replace('<h2>Round Winners</h2>', '') + '</div>';
-        html += `<h2 style="text-align:center;">Team Rankings</h2>`;
         html += '<div style="margin:0 auto;display:table">' + teamRankingsTable + '</div>';
         html += restOfHtml2;
       }

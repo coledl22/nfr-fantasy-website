@@ -62,7 +62,7 @@ router.get('/results', (req, res) => {
   const eventContestants = loadEventContestants(year);
   const events = Object.keys(eventContestants);
   const teams = loadTeams(year);
-  const eventResults = loadAllEventResults(year);
+  const eventResults = loadAllEventResults(year, eventContestants);
   log('API /results loaded eventResults keys', Object.keys(eventResults));
   for (const [event, data] of Object.entries(eventResults)) {
     if (data) {

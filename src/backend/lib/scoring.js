@@ -17,7 +17,8 @@ const EVENT_CSV_MAP = {
   'Barrel Racing': 'GB_results.csv',
 };
 
-function parseCsv(csv) {
+// Enhanced parseCsv to support splitting Team Roping contestants into Header/Heeler
+function parseCsv(csv, eventName = '', eventContestants = null) {
   log('parseCsv: parsing CSV');
   const lines = csv.trim().split(/\r?\n/);
   const headers = lines[0].split(',');
@@ -26,6 +27,15 @@ function parseCsv(csv) {
   const scoreIdx = headers.indexOf('Time/Score');
   const placeIdx = headers.indexOf('Place');
   const eventData = {};
+  const isHeading = !!(eventName.includes('Header') && eventContestants);
+  const isHeeling = !!(eventName.includes('Heeler') && eventContestants);
+  let headerList = [], heelerList = [];
+  if (isHeeling && eventContestants) {
+    heelerList = (eventContestants['Team Roping Heeler'] || []).map(n => n.toLowerCase());
+  }
+  if (isHeading && eventContestants) {
+    headerList = (eventContestants['Team Roping Header'] || []).map(n => n.toLowerCase());
+  }
   for (let i = 1; i < lines.length; i++) {
     const row = lines[i].split(',');
     let roundRaw = row[roundIdx];
@@ -37,17 +47,43 @@ function parseCsv(csv) {
         continue;
       }
     }
-    const name = row[nameIdx].replace(/"/g, '').trim();
+    let name = row[nameIdx].replace(/"/g, '').trim();
     const score = row[scoreIdx];
     const place = parseInt(row[placeIdx]);
     if (!eventData[round]) eventData[round] = [];
-    eventData[round].push({ Contestant: name, 'Time/Score': score, Place: place });
+    if ((isHeading || isHeeling) && name.includes('/')) {
+      // Split and assign to header/heeler
+      const [name1, name2] = name.split('/').map(s => s.trim());
+      // Check which is header/heeler by matching to eventContestants
+      let header = null, heeler = null;
+      if (isHeading) {
+        if (headerList.includes(name1.toLowerCase())) header = name1;
+        if (headerList.includes(name2.toLowerCase())) header = name2;
+        
+        if (header) {
+          eventData[round].push({ Contestant: header, 'Time/Score': score, Place: place });
+        }
+      } else if (isHeeling) {
+        if (heelerList.includes(name1.toLowerCase())) heeler = name1;
+        if (heelerList.includes(name2.toLowerCase())) heeler = name2;
+
+        if (heeler) {
+          eventData[round].push({ Contestant: heeler, 'Time/Score': score, Place: place });
+        }
+      }
+      if (!header && !heeler) {
+        eventData[round].push({ Contestant: name, 'Time/Score': score, Place: place });
+      }
+    } else {
+      eventData[round].push({ Contestant: name, 'Time/Score': score, Place: place });
+    }
   }
   log('parseCsv: eventData keys', Object.keys(eventData));
   return eventData;
 }
 
-function loadAllEventResults(year) {
+// Pass eventContestants to parseCsv for Team Roping split logic
+function loadAllEventResults(year, eventContestants = null) {
   const SCRAPER_RESULTS_DIR = getScraperResultsDir(year);
   log('loadAllEventResults: SCRAPER_RESULTS_DIR', SCRAPER_RESULTS_DIR);
   const results = {};
@@ -57,7 +93,7 @@ function loadAllEventResults(year) {
     if (fs.existsSync(filePath)) {
       log('Found CSV for', event);
       const csv = fs.readFileSync(filePath, 'utf-8');
-      results[event] = parseCsv(csv);
+      results[event] = parseCsv(csv, event, eventContestants);
     } else {
       log('Missing CSV for', event, filePath);
     }
