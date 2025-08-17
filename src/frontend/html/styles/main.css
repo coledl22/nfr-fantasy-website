@@ -11,9 +11,6 @@
         width: fit-content;
         order: 2;
     }
-    body > .home-link {
-        order: 2;
-    }
 }
 /* =========================
    Modal Dialog Styles

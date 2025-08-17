@@ -17,18 +17,19 @@ function injectResultsTableStyles() {
       width: 100%;
       border-collapse: collapse;
       margin-bottom: 2em;
+      margin-left: auto;
+      margin-right: auto;
     }
     .results-table th, .results-table td {
-      padding: 8px 12px;
       border: 1px solid #ccc;
       text-align: center;
-      overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-    .results-table th:nth-child(1), .results-table td:nth-child(1) { width: 80px; }
-    .results-table th:nth-child(2), .results-table td:nth-child(2) { width: 180px; }
-    .results-table th:nth-child(3), .results-table td:nth-child(3) { width: 120px; }
+  /* Set explicit widths for each column type */
+  .results-table th:nth-child(1), .results-table td:nth-child(1) { width: 150px; }
+  .results-table th:nth-child(2), .results-table td:nth-child(2) { width: 150px; }
+  .results-table th:nth-child(n+3), .results-table td:nth-child(n+3) { width: 35px; }
   `;
   document.head.appendChild(style);
 }
