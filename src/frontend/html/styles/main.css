@@ -1,3 +1,20 @@
+@media (max-width: 600px) {
+    header {
+        padding-top: 0.5em;
+        margin-bottom: 0.5em;
+    }
+    .home-link {
+        position: static !important;
+        display: block;
+        margin: 0.5em auto 0 auto;
+        text-align: center;
+        width: fit-content;
+        order: 2;
+    }
+    body > .home-link {
+        order: 2;
+    }
+}
 /* =========================
    Modal Dialog Styles
    ========================= */
