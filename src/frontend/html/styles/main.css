@@ -1,3 +1,43 @@
+/* =========================
+   Modal Dialog Styles
+   ========================= */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(30, 58, 92, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+.modal-content {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 32px rgba(30,58,92,0.18);
+    padding: 2em 2.5em 1.5em 2.5em;
+    max-width: 95vw;
+    min-width: 320px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    text-align: left;
+}
+.modal-close {
+    position: absolute;
+    top: 12px;
+    right: 18px;
+    font-size: 2em;
+    color: #1e3a5c;
+    cursor: pointer;
+    font-weight: bold;
+    transition: color 0.2s;
+}
+.modal-close:hover {
+    color: #285184;
+}
 /* Home link button for navigation */
 .home-link {
     position: absolute;

@@ -4,6 +4,7 @@ function getSelectedYear() {
   return document.getElementById('year-select')?.value || '2024';
 }
 
+
 function loadTeamForm() {
   const STANDINGS_SEL = '#standings';
   const BUDGET = 550000;
@@ -32,7 +33,7 @@ function loadTeamForm() {
         formHtml += `<select id="event${idx}" name="event${idx}">`;
         formHtml += '<option value="">Select a person</option>';
         allContestants[idx].forEach(person => {
-          formHtml += `<option value="${person.id}">${person.name} (Rank: ${person.rank}, $${person.cost})</option>`;
+          formHtml += `<option value="${person.id}">${person.name} ($${person.cost})</option>`;
         });
         formHtml += '</select><br><br>';
       });
@@ -40,7 +41,23 @@ function loadTeamForm() {
       formHtml += '</form>';
       standingsDiv.innerHTML = formHtml + '<div id="formMessage"></div>';
 
-      // Handle form submission via AJAX
+      // Modal helpers
+      function showModal(html) {
+        const modal = document.getElementById('submissionModal');
+        const body = document.getElementById('modalBody');
+        if (modal && body) {
+          body.innerHTML = html;
+          modal.style.display = 'flex';
+          // Attach close button handler immediately after modal content is set
+          const closeBtn = document.getElementById('modalCloseBtn');
+          if (closeBtn) closeBtn.onclick = hideModal;
+        }
+      }
+      function hideModal() {
+        const modal = document.getElementById('submissionModal');
+        if (modal) modal.style.display = 'none';
+      }
+      // Escape key handler is now only attached globally outside this function.
       const form = document.getElementById('fantasyForm');
       form.onsubmit = async function(e) {
         e.preventDefault();
@@ -59,11 +76,30 @@ function loadTeamForm() {
           const result = await resp.json();
           if (resp.ok && result.success) {
             setText('#formMessage', `Team submitted! Total cost: $${result.totalCost.toLocaleString()}`);
+            // Build submitted team details for modal
+            let teamHtml = `<h2 style='margin-top:0;'>Team Submitted!</h2>`;
+            teamHtml += `<div style='margin-bottom:0.7em;'><strong>Team Name:</strong> ${name}</div>`;
+            teamHtml += `<div style='margin-bottom:0.7em;'>Total cost: <strong>$${result.totalCost.toLocaleString()}</strong></div>`;
+            teamHtml += `<div><strong>Team Roster:</strong><ul style='padding-left:1.2em;'>`;
+            for (let i = 0; i < events.length; i++) {
+              const selId = selections[i];
+              const person = allContestants[i].find(p => p.id == selId);
+              if (person) {
+                teamHtml += `<li>${events[i]}: <strong>${person.name}</strong> </li>`;
+              } else {
+                teamHtml += `<li>${events[i]}: <em>(none)</em></li>`;
+              }
+            }
+            teamHtml += `</ul></div>`;
+            teamHtml += `<div style='margin-top:1.5em;text-align:center;'><a href="index.html" class="home-link" style="position:static;display:inline-block;">&#8592; Back to Home</a></div>`;
+            showModal(teamHtml);
           } else {
             setText('#formMessage', result.error || 'Submission failed.');
+            showModal(`<h2 style='margin-top:0;color:#b00;'>Submission Failed</h2><div>${result.error || 'Submission failed.'}</div>`);
           }
         } catch (err) {
           setText('#formMessage', 'Submission failed.');
+          showModal(`<h2 style='margin-top:0;color:#b00;'>Submission Failed</h2><div>Submission failed.</div>`);
         }
       };
 
@@ -111,7 +147,6 @@ function loadTeamForm() {
         }
       };
 
-      // Budget update logic
       function updateBudget() {
         let total = 0;
         for (let i = 0; i < events.length; i++) {
@@ -140,6 +175,14 @@ function loadTeamForm() {
     });
 }
 
+
+// Add Escape key event listener globally (only once)
+window.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    const modal = document.getElementById('submissionModal');
+    if (modal) modal.style.display = 'none';
+  }
+});
 
 (async () => {
   const yearSelect = document.getElementById('year-select');
