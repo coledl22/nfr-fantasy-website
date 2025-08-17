@@ -79,6 +79,16 @@ python nfrscraper.py
 
 The output CSVs are automatically made available to the frontend for display in the results viewer.
 
+## Adding new years
+
+To add a new year:
+
+1. Create a new `eventContestants.json` file in `src/backend/data/<year>/`.
+2. Populate it using the official entry form, available at:  
+   `https://www.profantasyrodeo.com/cms/entry-form-download/<year>-nfr-game`  
+   (replace `<year>` with the desired year, e.g., `2025`)
+3. Ensure the scraper (`src/scraper/nfrscraper.py`) is updated to support the new year and its events.
+
 ## Contributing
 
 Contributions are welcome! If you have suggestions for improvements or new features, please open an issue or submit a pull request.
