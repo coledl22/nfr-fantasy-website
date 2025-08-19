@@ -2,8 +2,22 @@
 const path = require('path');
 const { readJsonFile, writeJsonFile, log } = require('./utils');
 
-const SUPPORTED_YEARS = ['2022', '2023', '2024'];
-const DEFAULT_YEAR = '2024';
+
+const fs = require('fs');
+const DATA_DIR = path.join(__dirname, '..', 'data');
+const SUPPORTED_YEARS = (() => {
+  try {
+    return fs.readdirSync(DATA_DIR, { withFileTypes: true })
+      .filter(dirent => dirent.isDirectory())
+      .map(dirent => dirent.name)
+      .filter(name => /^\d{4}$/.test(name))
+      .filter(year => fs.existsSync(path.join(DATA_DIR, year, 'eventContestants.json')))
+      .sort();
+  } catch (e) {
+    return [];
+  }
+})();
+const DEFAULT_YEAR = SUPPORTED_YEARS.length > 0 ? SUPPORTED_YEARS[SUPPORTED_YEARS.length - 1] : '2024';
 
 function getYear(req, { throwIfInvalid = false } = {}) {
   const y = req.query.year;
