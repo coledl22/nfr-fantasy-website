@@ -1,7 +1,7 @@
 // routes/events.js
 const express = require('express');
 const router = express.Router();
-const { getYear, loadEventContestants } = require('../lib/dataAccess');
+const { SUPPORTED_YEARS, DEFAULT_YEAR, getYear, loadEventContestants } = require('../lib/dataAccess');
 
 // GET /api/events
 router.get('/events', (req, res) => {
@@ -12,7 +12,12 @@ router.get('/events', (req, res) => {
 
 // GET /api/contestants/:event
 router.get('/contestants/:event', (req, res) => {
-  const year = getYear(req);
+  let year;
+  try {
+    year = getYear(req, { throwIfInvalid: true });
+  } catch (err) {
+    return res.status(404).json({ error: err.message });
+  }
   const eventContestants = loadEventContestants(year);
   const event = req.params.event;
   const people = eventContestants[event];

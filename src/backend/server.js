@@ -32,6 +32,11 @@ app.get('/api/available-years', (req, res) => {
     });
 });
 
-app.listen(PORT, () => {
+
+if (require.main === module) {
+    app.listen(PORT, () => {
         console.log(`Backend server running on port ${PORT}`);
-});
+    });
+}
+
+module.exports = app;

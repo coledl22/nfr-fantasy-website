@@ -2,11 +2,15 @@
 const path = require('path');
 const { readJsonFile, writeJsonFile, log } = require('./utils');
 
-const SUPPORTED_YEARS = ['2022', '2023', '2024', '2025'];
+const SUPPORTED_YEARS = ['2022', '2023', '2024'];
 const DEFAULT_YEAR = '2024';
 
-function getYear(req) {
+function getYear(req, { throwIfInvalid = false } = {}) {
   const y = req.query.year;
+  if (y && !SUPPORTED_YEARS.includes(y)) {
+    if (throwIfInvalid) throw new Error('Year not found');
+    return DEFAULT_YEAR;
+  }
   if (y && SUPPORTED_YEARS.includes(y)) return y;
   return DEFAULT_YEAR;
 }
