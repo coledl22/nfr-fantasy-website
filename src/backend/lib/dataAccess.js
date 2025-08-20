@@ -1,6 +1,54 @@
 // dataAccess.js - handles all file/data access and year logic
 const path = require('path');
+
 const { readJsonFile, writeJsonFile, log } = require('./utils');
+
+// SQLite setup for teams
+const sqlite3 = require('sqlite3').verbose();
+const TEAMS_DB_PATH = path.join(__dirname, '..', 'data', 'teams.db');
+
+// Allow injection of a custom db (for testing)
+function createTeamsDb(customPath) {
+  const dbInstance = new sqlite3.Database(customPath || TEAMS_DB_PATH);
+  dbInstance.serialize(() => {
+    dbInstance.run(`CREATE TABLE IF NOT EXISTS teams (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      year TEXT NOT NULL,
+      name TEXT NOT NULL,
+      selections TEXT NOT NULL,
+      totalCost INTEGER NOT NULL,
+      submittedAt TEXT NOT NULL
+    )`);
+  });
+  return dbInstance;
+}
+
+const db = createTeamsDb();
+
+// Gracefully close the database connection on process exit
+function closeDbOnExit() {
+  if (db) {
+    db.close(err => {
+      if (err) {
+        log('Error closing database:', err);
+      } else {
+        log('Database connection closed.');
+      }
+    });
+  }
+}
+
+process.on('SIGINT', () => {
+  closeDbOnExit();
+  process.exit(0);
+});
+process.on('SIGTERM', () => {
+  closeDbOnExit();
+  process.exit(0);
+});
+process.on('exit', () => {
+  closeDbOnExit();
+});
 
 
 const fs = require('fs');
@@ -51,16 +99,61 @@ function loadEventContestants(year) {
   log('loadEventContestants:', file);
   return readJsonFile(file, {});
 }
-function loadTeams(year) {
-  const file = getTeamsFile(year);
-  log('loadTeams:', file);
-  return readJsonFile(file, []);
+
+function loadTeams(year, dbOverride) {
+  const useDb = dbOverride || db;
+  return new Promise((resolve, reject) => {
+    useDb.all('SELECT * FROM teams WHERE year = ?', [year], (err, rows) => {
+      if (err) return reject(err);
+      // Parse selections JSON for each team
+      const teams = rows.map(row => ({
+        name: row.name,
+        selections: JSON.parse(row.selections),
+        totalCost: row.totalCost,
+        submittedAt: row.submittedAt
+      }));
+      resolve(teams);
+    });
+  });
 }
-function saveTeams(year, teams) {
-  const file = getTeamsFile(year);
-  log('saveTeams:', file);
-  writeJsonFile(file, teams);
+
+
+function saveTeams(year, teams, dbOverride) {
+  // Overwrite all teams for the year
+  const useDb = dbOverride || db;
+  return new Promise((resolve, reject) => {
+    useDb.serialize(() => {
+      useDb.run('DELETE FROM teams WHERE year = ?', [year], function (err) {
+        if (err) return reject(err);
+        const stmt = useDb.prepare('INSERT INTO teams (year, name, selections, totalCost, submittedAt) VALUES (?, ?, ?, ?, ?)');
+        const insertPromises = teams.map(team => {
+          return new Promise((res, rej) => {
+            stmt.run(
+              year,
+              team.name,
+              JSON.stringify(team.selections),
+              team.totalCost,
+              team.submittedAt,
+              function (err) {
+                if (err) return rej(err);
+                res();
+              }
+            );
+          });
+        });
+        Promise.all(insertPromises)
+          .then(() => {
+            stmt.finalize(err => {
+              if (err) return reject(err);
+              resolve();
+            });
+          })
+          .catch(reject);
+      });
+    });
+  });
 }
+
 
 module.exports = {
   SUPPORTED_YEARS,
@@ -73,4 +166,5 @@ module.exports = {
   loadEventContestants,
   loadTeams,
   saveTeams,
+  createTeamsDb, // export for test injection
 };

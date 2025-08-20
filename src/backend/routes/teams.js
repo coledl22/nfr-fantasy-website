@@ -8,7 +8,7 @@ const BUDGET = 550000;
 const NUM_ROUNDS = 10;
 
 // POST /api/validate
-router.post('/validate', (req, res) => {
+router.post('/validate', async (req, res) => {
   const year = getYear(req);
   const eventContestants = loadEventContestants(year);
   const events = Object.keys(eventContestants);
@@ -33,22 +33,22 @@ router.post('/validate', (req, res) => {
   if (totalCost > budget) {
     return res.status(400).json({ error: `Selection exceeds budget of $${budget}.` });
   }
-  let teams = loadTeams(year);
+  let teams = await loadTeams(year);
   const newTeam = { name, selections, totalCost, submittedAt: new Date().toISOString() };
   const existingIdx = teams.findIndex(t => t.name && t.name.trim().toLowerCase() === name.trim().toLowerCase());
   if (existingIdx !== -1) {
     return res.status(400).json({ error: 'A team with this name already exists for this year.' });
   } else {
     teams.push(newTeam);
-    saveTeams(year, teams);
+    await saveTeams(year, teams);
     res.json({ success: true, totalCost });
   }
 });
 
 // GET /api/team-exists/:name
-router.get('/team-exists/:name', (req, res) => {
+router.get('/team-exists/:name', async (req, res) => {
   const year = getYear(req);
-  const teams = loadTeams(year);
+  const teams = await loadTeams(year);
   const name = req.params.name;
   const exists = teams.some(t => t.name && t.name.trim().toLowerCase() === name.trim().toLowerCase());
   res.json({ exists });
@@ -56,12 +56,12 @@ router.get('/team-exists/:name', (req, res) => {
 
 // GET /api/results
 const { loadAllEventResults, scoreTeams } = require('../lib/scoring');
-router.get('/results', (req, res) => {
+router.get('/results', async (req, res) => {
   const year = getYear(req);
   log('API /results year', year);
   const eventContestants = loadEventContestants(year);
   const events = Object.keys(eventContestants);
-  const teams = loadTeams(year);
+  const teams = await loadTeams(year);
   const eventResults = loadAllEventResults(year, eventContestants);
   log('API /results loaded eventResults keys', Object.keys(eventResults));
   for (const [event, data] of Object.entries(eventResults)) {
