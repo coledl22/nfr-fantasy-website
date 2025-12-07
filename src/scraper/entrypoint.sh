@@ -1,7 +1,6 @@
-#!/bin/sh
+#!/bin/bash
 # Entrypoint for nfrscraper Docker container
 # If CRON=1, run cron in foreground; otherwise, run scraper once
-
 
 if [ "$CRON" = "1" ]; then
     # Wait for 10 seconds before first run

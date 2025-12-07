@@ -13,11 +13,11 @@ COPY ./nfrscraper.py ./nfrscraper.py
 
 # Add entrypoint script for cron and manual run
 USER root
-RUN apt-get update && apt-get install -y cron
+RUN apt-get update && apt-get install -y cron dos2unix
 COPY ./entrypoint.sh ./entrypoint.sh
-RUN chmod +x ./entrypoint.sh
+RUN dos2unix ./entrypoint.sh && chmod +x ./entrypoint.sh
 # Set up cron to run at midnight (will be overwritten by entrypoint.sh logic)
 RUN echo "0 0 * * * root /app/entrypoint.sh >> /var/log/cron.log 2>&1" > /etc/cron.d/nfrscraper-cron
 RUN chmod 0644 /etc/cron.d/nfrscraper-cron && crontab /etc/cron.d/nfrscraper-cron
 # Default: run entrypoint (runs once, or cron if CRON=1)
-ENTRYPOINT ["/app/entrypoint.sh"]
+ENTRYPOINT ["/bin/bash", "/app/entrypoint.sh"]

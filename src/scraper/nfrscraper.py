@@ -10,6 +10,7 @@ from selenium.webdriver.support import expected_conditions as EC
 
 import os
 import csv
+import sys
 
 
 
@@ -32,7 +33,7 @@ EVENT_NAMES = {
     'TD': 'Tie-down Roping',
     'GB': 'Barrel Racing',
 }
-BASE_URL = "https://www.prorodeo.com/result/2024/2024-wrangler-national-finals-rodeo/15561"
+BASE_URL_TEMPLATE = "https://www.prorodeo.com/result/2024/2024-wrangler-national-finals-rodeo/15561?eventType=BB&year={year}&resultsTab=grid&round=Avg"
 NUM_ROUNDS = 10
 AVG_LABELS = ['Avg', 'AVG', 'avg']
 
@@ -57,21 +58,53 @@ def extract_table_data(table, event_code):
     headers = [th.get_text(strip=True).lower() for th in table.find_all('th')]
     contestant_idx = None
     value_idx = None
+    place_idx = None
+    
     for i, h in enumerate(headers):
         if 'contestant' in h:
             contestant_idx = i
         if 'time' in h or 'score' in h:
             value_idx = i
+        if 'place' in h or 'pos' in h or h == '#':
+            place_idx = i
+    
     if contestant_idx is None or value_idx is None:
         print(f"[ERROR] Could not find contestant or value column in table for event {event_code}")
         return None
-    data = []
+    
+    # Collect all data with place information if available
+    raw_data = []
     for row in table.find_all('tr')[1:]:
         cols = row.find_all('td')
         if cols:
             name = cols[contestant_idx].get_text(strip=True)
             value = cols[value_idx].get_text(strip=True)
-            data.append((name, value))
+            place = cols[place_idx].get_text(strip=True) if place_idx is not None and place_idx < len(cols) else ""
+            raw_data.append((name, value, place))
+    
+    # Filter out duplicates - keep entries with valid places, remove ones with "--" or no place
+    contestant_entries = {}
+    for name, value, place in raw_data:
+        if name not in contestant_entries:
+            contestant_entries[name] = []
+        contestant_entries[name].append((value, place))
+    
+    # For each contestant, if multiple entries exist, keep the one with a valid place
+    data = []
+    for name, entries in contestant_entries.items():
+        if len(entries) == 1:
+            # Only one entry, keep it regardless of place
+            data.append((name, entries[0][0]))
+        else:
+            # Multiple entries - prefer the one with a valid place (not "--" or empty)
+            valid_entries = [(value, place) for value, place in entries if place and place != "--" and place.strip() != ""]
+            if valid_entries:
+                # Keep the first valid entry (they should all be the same if valid)
+                data.append((name, valid_entries[0][0]))
+            else:
+                # No valid places found, keep the first entry
+                data.append((name, entries[0][0]))
+    
     return data
 
 def calculate_places(event_code, data):
@@ -231,13 +264,61 @@ def get_dropdown_options(dropdown_index):
     time.sleep(1)
     return option_texts
 
-# Compute AVG round for each event if missing, using total payoff
+# Compute AVG round for each event if missing, using average of contestant's scores
 def add_avg_round_by_payoff(event_code, rounds):
+    # Check if AVG round already exists - if so, don't recalculate
     if any(str(k).lower() == 'avg' for k in rounds.keys()):
         return
-    contestant_values = {}
-    round_count = {}
-    zero_counts = {}
+    
+    # Initialize dictionaries to track contestant performance
+    contestant_values = {}  # Sum of all scores for each contestant
+    round_count = {}       # Number of rounds each contestant participated in
+    zero_counts = {}       # Number of zero scores
+    
+    # Process all rounds to accumulate scores for each contestant
+    for k, results in rounds.items():
+        # Only process numeric round keys (skip non-round entries)
+        try:
+            int_k = int(k)
+        except Exception:
+            continue
+            
+        # Process each contestant's result in this round
+        for tup in results:
+            # Extract name, score/time, and place from result tuple
+            if len(tup) >= 3:
+                name, value, place = tup[:3]
+            else:
+                continue
+                
+            # Clean and parse the score/time value
+            try:
+                val_clean = value.replace(' s', '').replace('s', '').strip()
+                v = float(val_clean)
+            except Exception:
+                v = 0.0
+                
+            # Use contestant name as key, normalize for team roping
+            key = name
+            if event_code == 'TR':
+                key = normalize_teamroping_name(name)
+            
+            # These don't count toward averages but are tracked for tie-breaking
+            if v == 0:
+                zero_counts[key] = zero_counts.get(key, 0) + 1
+            
+            # Add score to contestant's total and increment round count
+            contestant_values.setdefault(key, 0.0)
+            round_count.setdefault(key, 0)
+            contestant_values[key] += v
+            round_count[key] += 1
+    
+    # Calculate averages and create result tuples
+    avg_results = []
+    no_score_contestants = []
+    
+    # Collect all contestants who appear in any round (including those with all zeros)
+    all_contestants = set()
     for k, results in rounds.items():
         try:
             int_k = int(k)
@@ -246,70 +327,60 @@ def add_avg_round_by_payoff(event_code, rounds):
         for tup in results:
             if len(tup) >= 3:
                 name, value, place = tup[:3]
-            else:
-                continue
-            try:
-                val_clean = value.replace(' s', '').replace('s', '').strip()
-                v = float(val_clean)
-            except Exception:
-                v = 0.0
-            key = name
-            if event_code == 'TR':
-                key = normalize_teamroping_name(name)
-            if event_code in ['SW', 'TR', 'TD', 'GB']:
-                if v == 0:
-                    zero_counts[key] = zero_counts.get(key, 0) + 1
-                    continue
-            contestant_values.setdefault(key, 0.0)
-            round_count.setdefault(key, 0)
-            contestant_values[key] += v
-            round_count[key] += 1
-    avg_results = []
-    for key in contestant_values:
-        if round_count[key] > 0:
-            avg_val = contestant_values[key] / round_count[key]
-            if event_code in ['SW', 'TR', 'TD', 'GB']:
-                num_zeros = zero_counts.get(key, 0)
-                orig_name = None
-                for k, results in rounds.items():
-                    try:
-                        int_k = int(k)
-                    except Exception:
-                        continue
-                    for tup in results:
-                        if len(tup) >= 3:
-                            name, value, place = tup[:3]
-                            if event_code == 'TR':
-                                if normalize_teamroping_name(name) == key:
-                                    orig_name = name
-                                    break
-                            else:
-                                if name == key:
-                                    orig_name = name
-                                    break
-                    if orig_name:
-                        break
-                avg_results.append((orig_name or key, f"{avg_val:.2f}", 0, num_zeros))
-            else:
-                avg_results.append((key, f"{avg_val:.2f}", 0))
+                key = name
+                if event_code == 'TR':
+                    key = normalize_teamroping_name(name)
+                all_contestants.add((key, name))
+    
+    for key, orig_name in all_contestants:
+        # Calculate average of all non-zero scores
+        num_zeros = zero_counts.get(key, 0)
+        scoring_rounds = round_count[key] - num_zeros
+        if scoring_rounds > 0:
+            avg_val = contestant_values[key] / scoring_rounds
+        else:
+            avg_val = 0
+
+        if round_count[key] == num_zeros:
+            no_score_contestants.append((orig_name, "0.00/0", 16))
+        else:
+            # Format: (name, "avg_score/scoring_rounds", temp_place, zero_count)
+            avg_results.append((orig_name, f"{avg_val:.2f}/{scoring_rounds}", 0, num_zeros))
+    
+    # Sort results based on event type
     if event_code in ['SW', 'TR', 'TD', 'GB']:
-        avg_results_sorted = sorted(avg_results, key=lambda x: (x[3], float(x[1])))
+        # Timed events: sort by zero count first, then by time (lower is better)
+        # Contestants with more zeros are ranked lower
+        avg_results_sorted = sorted(avg_results, key=lambda x: (x[3], float(x[1].split('/')[0])))
     else:
-        reverse = event_code in ['BB', 'SB', 'BR']
-        avg_results_sorted = sorted(avg_results, key=lambda x: float(x[1]), reverse=reverse)
+        # Scored events: sort by lowest zero count first, then by highest score
+        # Higher scores are better, fewer zeros are better
+        avg_results_sorted = sorted(avg_results, key=lambda x: (x[3], -float(x[1].split('/')[0])))
+
+    # Assign places, handling ties appropriately
     results_with_place = []
     place = 1
     i = 0
     while i < len(avg_results_sorted):
+        # Find all contestants with the same score/time and zero count
         same = [avg_results_sorted[i]]
         while i + 1 < len(avg_results_sorted) and avg_results_sorted[i+1][1] == avg_results_sorted[i][1] and \
                 (event_code not in ['SW', 'TR', 'TD', 'GB'] or avg_results_sorted[i+1][3] == avg_results_sorted[i][3]):
             same.append(avg_results_sorted[i+1])
             i += 1
+        
+        # Assign the same place to all tied contestants
         for s in same:
             results_with_place.append((s[0], s[1], place))
+        
+        # Next place is incremented by the number of tied contestants
         place += len(same)
         i += 1
+    
+    # Add contestants with no valid scores (all zeros) to the final results
+    results_with_place.extend(no_score_contestants)
+    
+    # Add the calculated AVG round to the rounds dictionary
     if results_with_place:
         rounds['Avg'] = results_with_place
 
@@ -346,7 +417,6 @@ def write_all_results_to_csv(all_results, year):
 
 
 if __name__ == "__main__":
-    import sys
     all_results = {}
 
     # Parse year from command line
@@ -366,7 +436,7 @@ if __name__ == "__main__":
     options.add_argument('--log-level=3')
     global driver
     driver = webdriver.Chrome(options=options)
-    initial_page = BASE_URL
+    initial_page = BASE_URL_TEMPLATE.format(year=year)
     if initial_page:
         driver.get(initial_page)
         time.sleep(2)
